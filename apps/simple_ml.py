@@ -89,10 +89,24 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
             W1: ndl.Tensor[np.float32]
             W2: ndl.Tensor[np.float32]
     """
+    epochs = X.shape[0] / batch
 
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    for epoch in range(int(epochs)):
+        x = X[epoch*batch:(epoch+1)*batch, :]
+        y_ = y[epoch*batch:(epoch+1)*batch]
+        x = ndl.Tensor(x)
+        out = ndl.matmul(ndl.relu(ndl.matmul(x, W1)), W2)
+
+        y_one_hot = np.zeros((y_.shape[0], out.shape[-1]))
+        y_one_hot[np.arange(y_.size), y_] = 1
+        y_ = ndl.Tensor(y_one_hot)
+        loss = softmax_loss(out, y_)
+        loss.backward()
+
+        W1, W2 = W1 - lr * W1.grad, W2 - lr * W2.grad
+        W1, W2 = ndl.Tensor(W1.cached_data), ndl.Tensor(W2.cached_data)
+
+    return W1, W2
 
 
 ### CODE BELOW IS FOR ILLUSTRATION, YOU DO NOT NEED TO EDIT
