@@ -3,6 +3,7 @@ import needle
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple, defaultdict
 import numpy
+from needle import init
 
 # needle version
 LAZY_MODE = False
@@ -32,6 +33,26 @@ class CPUDevice(Device):
 
     def enabled(self):
         return True
+
+    def zeros(self, *shape, dtype="float32"):
+        return numpy.zeros(shape, dtype=dtype)
+
+    def ones(self, *shape, dtype="float32"):
+        return numpy.ones(shape, dtype=dtype)
+
+    def randn(self, *shape):
+        # note: numpy doesn't support types within standard random routines, and 
+        # .astype("float32") does work if we're generating a singleton
+        return numpy.random.randn(*shape) 
+
+    def rand(self, *shape):
+        # note: numpy doesn't support types within standard random routines, and 
+        # .astype("float32") does work if we're generating a singleton
+        return numpy.random.rand(*shape)
+
+    def one_hot(self, n, i, dtype="float32"):
+        return numpy.eye(n, dtype=dtype)[i]
+
 
 def cpu():
     """Return cpu device"""
@@ -261,6 +282,8 @@ class Tensor(Value):
         tensor = Tensor.__new__(Tensor)
         tensor._init(op, inputs)
         if not LAZY_MODE:
+            if not tensor.requires_grad:
+                return tensor.detach()
             tensor.realize_cached_data()
         return tensor
 
@@ -311,7 +334,7 @@ class Tensor(Value):
         return data.device
 
     def backward(self, out_grad=None):
-        out_grad = out_grad if out_grad else Tensor(numpy.ones(self.shape))
+        out_grad = out_grad if out_grad else init.ones(*self.shape, dtype=self.dtype, device=self.device)
         compute_gradient_of_variables(self, out_grad)
 
     def __repr__(self):
