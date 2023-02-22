@@ -136,7 +136,7 @@ class PowerScalar(TensorOp):
         return a ** self.scalar
 
     def gradient(self, out_grad, node):
-        base = node.inputs
+        base = node.inputs[0]
         return out_grad * self.scalar * (base ** (self.scalar - 1))
 
 
@@ -263,13 +263,13 @@ class MatMul(TensorOp):
     def gradient(self, out_grad, node):
         a, b = node.inputs
         if len(a.shape) > len(b.shape):
-            b.cached_data = array_api.expand_dims(b.cached_data, (0, 1))
+            b.cached_data = array_api.expand_dims(b.cached_data, (0))
             grad_1, grad_2 = matmul(out_grad, b.transpose()), matmul(a.transpose(), out_grad)
             grad_2 = summation(grad_2, axes=(0, 1))
             return grad_1, grad_2
 
         if len(b.shape) > len(a.shape):
-            a.cached_data = array_api.expand_dims(a.cached_data, (0, 1))
+            a.cached_data = array_api.expand_dims(a.cached_data, (0))
             grad_1, grad_2 = matmul(out_grad, b.transpose()), matmul(a.transpose(), out_grad)
             grad_1 = summation(grad_1, axes=(0, 1))
             return grad_1, grad_2
@@ -333,9 +333,15 @@ class LogSumExp(TensorOp):
         self.axes = axes
 
     def compute(self, Z):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        max_num = array_api.max(Z, axis=self.axes)
+        if self.axes is None:
+            return array_api.log(array_api.sum(array_api.exp(Z - max_num), axis=self.axes)) + max_num
+        shape = list(Z.shape)
+        for i in self.axes:
+            shape[i] = 1
+        max_num_new = array_api.reshape(max_num, shape)
+        max_num_new = array_api.broadcast_to(max_num_new, Z.shape)
+        return array_api.log(array_api.sum(array_api.exp(Z - max_num_new), axis=self.axes)) + max_num
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
