@@ -87,16 +87,16 @@ class Linear(Module):
         self.in_features = in_features
         self.out_features = out_features
 
-        self.weight = init.kaiming_uniform(in_features, out_features, dtype="float32")
+        self.weight = Parameter(init.kaiming_uniform(in_features, out_features, dtype="float32"))
         self.bias = None
         if bias:
             self.bias = init.kaiming_uniform(out_features, 1, dtype="float32")
-            self.bias = ops.reshape(self.bias, (1, out_features))
+            self.bias = Parameter(ops.reshape(self.bias, (1, out_features)))
 
     def forward(self, X: Tensor) -> Tensor:
         out = ops.matmul(X, self.weight)
         if self.bias is not None:
-            out = out + self.bias
+            out = out + ops.broadcast_to(self.bias, out.shape)
         return out
 
 
@@ -142,8 +142,8 @@ class BatchNorm1d(Module):
         self.dim = dim
         self.eps = eps
         self.momentum = momentum
-        self.weight = init.ones(dim)
-        self.bias = init.zeros(dim)
+        self.weight = Parameter(init.ones(dim))
+        self.bias = Parameter(init.zeros(dim))
         self.running_mean = init.zeros(dim)
         self.running_var = init.ones(dim)
 
@@ -169,8 +169,8 @@ class LayerNorm1d(Module):
         super().__init__()
         self.dim = dim
         self.eps = eps
-        self.weight = init.ones(dim)
-        self.bias = init.zeros(dim)
+        self.weight = Parameter(init.ones(dim))
+        self.bias = Parameter(init.zeros(dim))
 
 
     def forward(self, x: Tensor) -> Tensor:
@@ -188,7 +188,7 @@ class Dropout(Module):
     def forward(self, x: Tensor) -> Tensor:
         if self.training == False:
             return x
-        mask = init.randb(*x.shape, p=self.p)
+        mask = init.randb(*x.shape, p=1-self.p)
         return x * mask / (1 - self.p)
 
 

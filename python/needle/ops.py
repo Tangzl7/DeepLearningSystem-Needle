@@ -116,7 +116,7 @@ class MulScalar(TensorOp):
         self.scalar = scalar
 
     def compute(self, a: NDArray):
-        return a * self.scalar
+        return (a * self.scalar).astype(a.dtype)
 
     def gradient(self, out_grad: Tensor, node: Tensor):
         return (out_grad * self.scalar,)
@@ -220,14 +220,15 @@ class BroadcastTo(TensorOp):
         return array_api.broadcast_to(a, self.shape)
 
     def gradient(self, out_grad, node):
-        if len(self.shape) > len(node.inputs[0].shape):
-            for i in range(len(self.shape)):
-                out_grad = summation(out_grad, 0)
-        else:
-            for i in range(len(self.shape)):
-                if self.shape[i] > node.inputs[0].shape[i]:
-                    out_grad = summation(out_grad, i)
-        return out_grad.reshape(node.inputs[0].shape)
+        input = node.inputs[0]
+        x_dim = len(input.shape)
+        out_grad_dim = len(out_grad.shape)
+        expand_dim_num = out_grad_dim - x_dim
+        agg_axes = []
+        agg_axes.extend([i for i in range(expand_dim_num)])
+        agg_axes.extend([i + expand_dim_num for i in range(x_dim) if input.shape[i] == 1])
+        agg_axes = tuple(agg_axes)
+        return out_grad.sum(agg_axes).reshape(input.shape)
 
 
 def broadcast_to(a, shape):
