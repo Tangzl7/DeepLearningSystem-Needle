@@ -246,7 +246,8 @@ class Summation(TensorOp):
         if self.axis != None:
             if self.keepdims == False:
                 out_grad.cached_data = array_api.expand_dims(out_grad.cached_data, self.axis) 
-            return out_grad.broadcast_to(node.inputs[0].shape)
+            out_grad.cached_data = array_api.broadcast_to(out_grad.cached_data, node.inputs[0].shape)
+            return out_grad
         else:
             out_grad.cached_data = array_api.ones_like(node.inputs[0].cached_data) * out_grad.cached_data
             return out_grad
@@ -344,9 +345,25 @@ class LogSumExp(TensorOp):
         return array_api.log(array_api.sum(array_api.exp(Z - max_num_new), axis=self.axes)) + max_num
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        input = node.inputs[0].cached_data
+        max_num = array_api.max(input, axis=self.axes)
+        if self.axes is None:
+            exp_g = array_api.exp(input - max_num)
+            sum_g = array_api.sum(exp_g, axis=self.axes)
+            out_grad.cached_data = out_grad.cached_data / sum_g * exp_g
+            return out_grad
+        shape = list(input.shape)
+        for i in self.axes:
+            shape[i] = 1
+        max_num = array_api.reshape(max_num, shape)
+        max_num = array_api.broadcast_to(max_num, input.shape)
+        out_grad.cached_data = array_api.reshape(out_grad.cached_data, shape)
+        out_grad.cached_data = array_api.broadcast_to(out_grad.cached_data, input.shape)
+        exp_g = array_api.exp(input - max_num)
+        sum_g = array_api.sum(exp_g, axis=self.axes)
+        sum_g = array_api.broadcast_to(array_api.reshape(sum_g, shape), shape=input.shape)
+        out_grad.cached_data = out_grad.cached_data / sum_g * exp_g
+        return out_grad
 
 
 def logsumexp(a, axes=None):
