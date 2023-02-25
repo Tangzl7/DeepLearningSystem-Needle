@@ -116,7 +116,7 @@ class DataLoader:
         batch_data = self.dataset[self.ordering[self.index]]
         batch_data = [Tensor(data) for data in batch_data]
         self.index += 1
-        return batch_data
+        return tuple(batch_data)
 
 
 class MNISTDataset(Dataset):
@@ -134,9 +134,9 @@ class MNISTDataset(Dataset):
 
     def __getitem__(self, index) -> object:
         if type(index) is int:
-            return self.apply_transforms(self.images[index].reshape((28, 28, 1))), self.labels[index]
+            return self.apply_transforms(self.images[index].reshape((28, 28, 1))).reshape(784), self.labels[index]
         images = self.images[index].reshape((-1, 28, 28, 1))
-        images = np.stack([self.apply_transforms(image) for image in images])
+        images = np.stack([self.apply_transforms(image).reshape(784) for image in images])
         return images, self.labels[index]
 
     def __len__(self) -> int:
