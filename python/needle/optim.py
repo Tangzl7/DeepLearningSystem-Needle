@@ -24,7 +24,12 @@ class SGD(Optimizer):
         self.weight_decay = weight_decay
 
     def step(self):
-        pass
+        for param in self.params:
+            if param not in self.u:
+                self.u[param] = 0
+            grad = param.grad.data + param.data * self.weight_decay
+            self.u[param] = self.momentum * self.u[param] + (1 - self.momentum) * grad
+            param.data = param.data - self.lr * self.u[param]
 
 
 class Adam(Optimizer):
@@ -49,6 +54,15 @@ class Adam(Optimizer):
         self.v = {}
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        self.t += 1
+        for param in self.params:
+            if param not in self.m:
+                self.m[param] = 0
+            if param not in self.v:
+                self.v[param] = 0
+            grad = param.grad.data + param.data * self.weight_decay
+            self.m[param] = self.beta1 * self.m[param] + (1 - self.beta1) * grad
+            self.v[param] = self.beta2 * self.v[param] + (1 - self.beta2) * (grad ** 2)
+            m_bias_cor = self.m[param] / (1 - self.beta1 ** self.t)
+            v_bias_cor = self.v[param] / (1 - self.beta2 ** self.t)
+            param.data = param.data - self.lr * (m_bias_cor / (v_bias_cor ** 0.5 + self.eps))
