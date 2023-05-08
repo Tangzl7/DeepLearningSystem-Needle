@@ -3,64 +3,12 @@ import needle
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple, defaultdict
 import numpy
-from needle import init
 
 # needle version
 LAZY_MODE = False
 TENSOR_COUNTER = 0
 
-# NOTE: we will import numpy as the array_api
-# as the backend for our computations, this line will change in later homeworks
-import numpy as array_api
-NDArray = numpy.ndarray
-
-
-class Device:
-    """Indicates the device supporting an NDArray."""
-
-
-class CPUDevice(Device):
-    """Represents data that sits in CPU"""
-
-    def __repr__(self):
-        return "needle.cpu()"
-
-    def __hash__(self):
-        return self.__repr__().__hash__()
-
-    def __eq__(self, other):
-        return isinstance(other, CPUDevice)
-
-    def enabled(self):
-        return True
-
-    def zeros(self, *shape, dtype="float32"):
-        return numpy.zeros(shape, dtype=dtype)
-
-    def ones(self, *shape, dtype="float32"):
-        return numpy.ones(shape, dtype=dtype)
-
-    def randn(self, *shape):
-        # note: numpy doesn't support types within standard random routines, and 
-        # .astype("float32") does work if we're generating a singleton
-        return numpy.random.randn(*shape) 
-
-    def rand(self, *shape):
-        # note: numpy doesn't support types within standard random routines, and 
-        # .astype("float32") does work if we're generating a singleton
-        return numpy.random.rand(*shape)
-
-    def one_hot(self, n, i, dtype="float32"):
-        return numpy.eye(n, dtype=dtype)[i]
-
-
-def cpu():
-    """Return cpu device"""
-    return CPUDevice()
-
-def all_devices():
-    """return a list of all available devices"""
-    return [cpu()]
+from .backend_selection import Device, array_api, NDArray, default_device
 
 
 class Op:
@@ -233,7 +181,7 @@ class TensorTuple(Value):
 
     def detach(self):
         """Create a new tensor that shares the data but detaches from the graph."""
-        return Tuple.make_const(self.realize_cached_data())
+        return TensorTuple.make_const(self.realize_cached_data())
 
 
 class Tensor(Value):
@@ -261,7 +209,7 @@ class Tensor(Value):
                     array.numpy(), device=device, dtype=dtype
                 )
         else:
-            device = device if device else cpu()
+            device = device if device else default_device()
             cached_data = Tensor._array_from_numpy(array, device=device, dtype=dtype)
 
         self._init(
@@ -330,7 +278,7 @@ class Tensor(Value):
         data = self.realize_cached_data()
         # numpy array always sits on cpu
         if array_api is numpy:
-            return cpu()
+            return default_device()
         return data.device
 
     def backward(self, out_grad=None):

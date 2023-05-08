@@ -1,6 +1,5 @@
 """Optimization module"""
 import needle as ndl
-import numpy as np
 
 
 class Optimizer:
