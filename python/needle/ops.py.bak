@@ -368,8 +368,6 @@ class LogSumExp(TensorOp):
 
 def logsumexp(a, axes=None):
     return LogSumExp(axes=axes)(a)
-
-
 class Tanh(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION

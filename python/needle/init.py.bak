@@ -45,7 +45,7 @@ def one_hot(n, i, device=None, dtype="float32", requires_grad=False):
     """ Generate one-hot encoding Tensor """
     device = ndl.default_device() if device is None else device
     return ndl.Tensor(
-        device.one_hot(n, i.numpy().astype("int32"), dtype=dtype),
+        device.one_hot(n, i.numpy(), dtype=dtype),
         device=device,
         requires_grad=requires_grad,
     )
